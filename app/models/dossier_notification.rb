@@ -56,13 +56,29 @@ class DossierNotification < ApplicationRecord
       .update_all(groupe_instructeur_id: new_groupe_instructeur.id)
   end
 
-  def self.refresh_notifications_instructeur_for_dossier(instructeur, dossier)
-    create_notification(dossier, :dossier_modifie, instructeur:) if dossier.last_champ_updated_at.present? && dossier.last_champ_updated_at > dossier.depose_at
-    create_notification(dossier, :message, instructeur:) if dossier.commentaires.to_notify(instructeur).present?
-    create_notification(dossier, :annotation_instructeur, instructeur:) if dossier.last_champ_private_updated_at.present?
-    create_notification(dossier, :avis_externe, instructeur:) if dossier.avis.with_answer.present?
-    create_notification(dossier, :attente_correction, instructeur:) if dossier.pending_correction?
-    create_notification(dossier, :attente_avis, instructeur:) if dossier.avis.without_answer.present?
+  def self.refresh_notifications_instructeur_for_followed_dossier(instructeur, dossier)
+    destroy_notifications_by_dossier_and_type(dossier, :dossier_depose)
+
+    instructeur_preferences = instructeur_preferences(instructeur, dossier.procedure)
+
+    notification_types_followed = notification_types.keys.filter do |notification_type|
+      instructeur_preferences[notification_type] == "followed"
+    end
+
+    return if notification_types_followed.empty?
+
+    conditions_by_type = {
+      dossier_modifie:         -> (dossier, _) { dossier.last_champ_updated_at.present? && dossier.last_champ_updated_at > dossier.depose_at },
+      message:                 -> (dossier, instructeur) { dossier.commentaires.to_notify(instructeur).present? },
+      annotation_instructeur:  -> (dossier, _) { dossier.last_champ_private_updated_at.present? },
+      avis_externe:            -> (dossier, _) { dossier.avis.with_answer.present? },
+      attente_correction:      -> (dossier, _) { dossier.pending_correction? },
+      attente_avis:            -> (dossier, _) { dossier.avis.without_answer.present? }
+    }
+
+    notification_types_followed.each do |notification_type|
+      create_notification(dossier, notification_type.to_sym, instructeur:) if conditions_by_type[notification_type.to_sym].call(dossier, instructeur)
+    end
   end
 
   def self.destroy_notifications_instructeur_of_groupe_instructeur(groupe_instructeur, instructeur)
