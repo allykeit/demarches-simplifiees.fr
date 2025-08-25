@@ -45,18 +45,18 @@ class Instructeurs::RemoveFilterButtonsComponent < ApplicationComponent
 
     filter_value = Array(filter.is_a?(String) ? filter : filter[:value])
 
-    operator = if filter[:operator] == 'before'
-      t('.operators.before')
-    elsif filter[:operator] == 'after'
-      t('.operators.after')
-    end
-
     processed_value = if column_type == :date || column_type == :datetime
       filter_value.map { helpers.try_parse_format_date(it) }.join(t('.conjunctions.or'))
     else
       filter_value.map { filter_column.column.label_for_value(it) }.join(t('.conjunctions.or'))
     end
 
-    [operator, processed_value].compact.join(' ')
+    [human_operator(filter_column.filter_operator), processed_value].compact.join(' ')
+  end
+
+  def human_operator(operator)
+    return "" if operator.in?(["in", "match"])
+
+    t(".operators.#{operator}")
   end
 end
