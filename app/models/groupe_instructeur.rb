@@ -41,7 +41,7 @@ class GroupeInstructeur < ApplicationRecord
 
     default_notification_settings = instructeur.notification_settings(procedure_id)
     instructeur.assign_to.create(groupe_instructeur: self, **default_notification_settings)
-    create_dossier_depose_notifications(self, instructeur)
+    create_notifications_instructeur(self, instructeur)
   end
 
   def remove(instructeur)
@@ -143,5 +143,13 @@ class GroupeInstructeur < ApplicationRecord
     @dossiers_en_construction_non_suivis.each do |dossier|
       DossierNotification.create_notification(dossier, :dossier_depose, instructeur:)
     end
+  end
+end
+
+def create_notifications_instructeur(groupe_instructeur, instructeur)
+  @dossiers ||= groupe_instructeur.dossiers
+
+  @dossiers.each do |dossier|
+    DossierNotification.refresh_notifications_instructeur_for_dossier_by_choice(instructeur, dossier, 'all')
   end
 end
