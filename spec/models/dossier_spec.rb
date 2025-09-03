@@ -1143,6 +1143,34 @@ describe Dossier, type: :model do
     end
   end
 
+  describe '#hide_and_keep_track! recipients (user deletion, en_construction)' do
+    let(:dossier) { create(:dossier, :en_construction, :followed) }
+    let(:user) { dossier.user }
+    let(:follower_email) { dossier.followers_instructeurs.first.email }
+
+    let(:admin_only_user) { create(:user) }
+    let!(:admin_only) { create(:administrateur, user: admin_only_user) }
+
+    let(:both_roles_user) { create(:user) }
+    let!(:admin_and_instructeur) { create(:administrateur, user: both_roles_user) }
+
+    before do
+      dossier.procedure.administrateurs << admin_only
+      dossier.procedure.administrateurs << admin_and_instructeur
+      dossier.procedure.defaut_groupe_instructeur.instructeurs << admin_and_instructeur.user.instructeur
+
+      allow(DossierMailer).to receive(:notify_en_construction_deletion_to_administration).and_return(double(deliver_later: nil))
+    end
+
+    it 'notifies followers and admins who are also instructeurs, not admins-only' do
+      dossier.hide_and_keep_track!(user, :user_request)
+
+      expect(DossierMailer).to have_received(:notify_en_construction_deletion_to_administration).with(kind_of(Dossier), follower_email)
+      expect(DossierMailer).to have_received(:notify_en_construction_deletion_to_administration).with(kind_of(Dossier), both_roles_user.email)
+      expect(DossierMailer).not_to have_received(:notify_en_construction_deletion_to_administration).with(kind_of(Dossier), admin_only.email)
+    end
+  end
+
   describe "#can_transition_to_en_construction?" do
     let(:procedure) { create(:procedure, :published) }
     let(:dossier) { create(:dossier, state: state, procedure: procedure) }
