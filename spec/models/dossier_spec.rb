@@ -780,6 +780,7 @@ describe Dossier, type: :model do
           expect(DossierNotification.count).to eq(0)
         end
       end
+      # TODO: test destroy notifs for old instructeurs and create notifs for new instructeurs
     end
   end
 
