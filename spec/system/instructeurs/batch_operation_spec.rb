@@ -323,6 +323,97 @@ describe 'BatchOperation a dossier:', js: true do
       visit instructeur_procedure_path(procedure, statut: 'suivis')
       expect(page).not_to have_content("L’action de masse est terminée")
     end
+
+    scenario 'create a BatchOperation for create_commentaire in a-suivre tab', chrome: true do
+      dossier_1 = create(:dossier, :en_construction, procedure: procedure)
+      dossier_2 = create(:dossier, :en_construction, procedure: procedure)
+      log_in(instructeur.email, password)
+
+      visit instructeur_procedure_path(procedure, statut: 'a-suivre')
+
+      checkbox_id_1 = dom_id(BatchOperation.new, "checkbox_#{dossier_1.id}")
+      checkbox_id_2 = dom_id(BatchOperation.new, "checkbox_#{dossier_2.id}")
+
+      # batch two dossiers
+      check(checkbox_id_1)
+      check(checkbox_id_2)
+
+      click_on "Envoyer un message aux usagers"
+
+      expect(page).to have_selector("#modal-commentaire-batch", visible: true)
+      expect(page).to have_content("Envoyer un message à 2 usagers")
+      fill_in('Votre message', with: "Message de test pour l'onglet à suivre")
+      click_on "Envoyer le message"
+
+      # ensure batched dossiers are disabled
+      expect(page).to have_selector("##{checkbox_id_1}[disabled]")
+      expect(page).to have_selector("##{checkbox_id_2}[disabled]")
+      # ensure Batch is created
+      expect(BatchOperation.count).to eq(1)
+      expect(BatchOperation.last.operation).to eq('create_commentaire')
+    end
+
+    scenario 'create a BatchOperation for create_commentaire in traites tab', chrome: true do
+      dossier_1 = create(:dossier, :accepte, procedure: procedure)
+      dossier_2 = create(:dossier, :accepte, procedure: procedure)
+      log_in(instructeur.email, password)
+
+      visit instructeur_procedure_path(procedure, statut: 'traites')
+
+      checkbox_id_1 = dom_id(BatchOperation.new, "checkbox_#{dossier_1.id}")
+      checkbox_id_2 = dom_id(BatchOperation.new, "checkbox_#{dossier_2.id}")
+
+      # batch two dossiers
+      check(checkbox_id_1)
+      check(checkbox_id_2)
+      expect(page).to have_button("Autres actions multiples")
+
+      click_on "Autres actions multiples"
+      click_on "Envoyer un message aux usagers"
+
+      expect(page).to have_selector("#modal-commentaire-batch", visible: true)
+      expect(page).to have_content("Envoyer un message à 2 usagers")
+      fill_in('Votre message', with: "Message de test pour l'onglet traités")
+      click_on "Envoyer le message"
+
+      # ensure batched dossiers are disabled
+      expect(page).to have_selector("##{checkbox_id_1}[disabled]")
+      expect(page).to have_selector("##{checkbox_id_2}[disabled]")
+      # ensure Batch is created
+      expect(BatchOperation.count).to eq(1)
+      expect(BatchOperation.last.operation).to eq('create_commentaire')
+    end
+
+    scenario 'create a BatchOperation for create_commentaire in tous tab', chrome: true do
+      dossier_1 = create(:dossier, :en_construction, procedure: procedure)
+      dossier_2 = create(:dossier, :accepte, procedure: procedure)
+      log_in(instructeur.email, password)
+
+      visit instructeur_procedure_path(procedure, statut: 'tous')
+
+      checkbox_id_1 = dom_id(BatchOperation.new, "checkbox_#{dossier_1.id}")
+      checkbox_id_2 = dom_id(BatchOperation.new, "checkbox_#{dossier_2.id}")
+
+      # batch two dossiers
+      check(checkbox_id_1)
+      check(checkbox_id_2)
+      expect(page).to have_button("Autres actions multiples")
+
+      click_on "Autres actions multiples"
+      click_on "Envoyer un message aux usagers"
+
+      expect(page).to have_selector("#modal-commentaire-batch", visible: true)
+      expect(page).to have_content("Envoyer un message à 2 usagers")
+      fill_in('Votre message', with: "Message de test pour l'onglet tous")
+      click_on "Envoyer le message"
+
+      # ensure batched dossiers are disabled
+      expect(page).to have_selector("##{checkbox_id_1}[disabled]")
+      expect(page).to have_selector("##{checkbox_id_2}[disabled]")
+      # ensure Batch is created
+      expect(BatchOperation.count).to eq(1)
+      expect(BatchOperation.last.operation).to eq('create_commentaire')
+    end
   end
 
   def log_in(email, password)
