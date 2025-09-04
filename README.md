@@ -1,7 +1,7 @@
 ça-tombe-pour-moi.
 
 > [!NOTE]
-> [Lire la version française du README](README.fr.md)
+>ca-tombe-bien-pour-moi
 
 ## Context
 
