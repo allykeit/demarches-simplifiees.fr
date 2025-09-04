@@ -30,7 +30,10 @@ module Maintenance
           normalize_filtered_column(filtered_column)
         end)
 
-        element.save
+        element.save!
+      rescue ActiveRecord::RecordNotFound
+        # a column can be not found for various reasons (deleted tdc, changed type, etc)
+        # in this case we just ignore the error and continue
       end
     end
 
